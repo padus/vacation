@@ -1,0 +1,13 @@
+#
+# App:         UPS Monitoring Service 
+# Author:      Mirco Caramori
+# Copyright:   (c) 2021 Mirco Caramori
+# Repository:  https://github.com/mircolino/vacation
+#
+# Description: instruct git to ignore files and directories that should not be save in the repository
+#
+
+/build/
+/bin/*.log
+
+**/desktop.ini
