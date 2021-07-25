@@ -4,27 +4,41 @@ Simple Windows application and Hubitat presence sensor driver to monitor AC pres
 
 ## Installation Instructions
 
-### Hubitat Website:
+### Hubitat Website
 
-1.  Add the UPS Monitoring Service [source code](https://raw.githubusercontent.com/mircolino/vacation/main/driver.groovy) to the Hubitat "Drivers Code" page.
+1. Add the UPS Monitoring Service [source code](https://raw.githubusercontent.com/mircolino/vacation/main/driver.groovy) to the Hubitat "Drivers Code" page.
 
-2.  Create a new Virtual Device, select type: "UPS Monitoring Service" and press &lt;Save Device&gt;:
+2. Create a new Virtual Device, select type: "UPS Monitoring Service" and press &lt;Save Device&gt;:
 
-3.  Open the "UPS Monitoring Service" device page, enter the IP or MAC address of the Windows system where the UPS is connected and press &lt;Save Preferences&gt;:
+3. Open the "UPS Monitoring Service" device page, enter the IP or MAC address of the Windows system where the UPS is connected and press &lt;Save Preferences&gt;:
 
-<img src="https://github.com/mircolino/vacation/raw/main/images/device.png" width="50%" height="50%">
+   <img src="https://github.com/mircolino/vacation/raw/main/images/device.png" width=50% height=50%>
 
-### Windows System:
+### Windows System
 
-Simply run the application with, as a parameter, the Hubitat IP address or hotname.
+1. Create a new folder "C:\Program Files\UPS Monitoring Service" and copy the "vacation.exe" and "vacation.reg" files in it. *NB: If change folder name you'll have to update the "vacation.reg" file and the commands below accordingly.*
 
-```text
-  C:\> vacation.exe 192.168.10.19
-```
+2. Double-click the "vacation.reg" file to register the service log message provider.
 
-The UPS Monitoring Service and the Hubitat Integration should now be fully operational.
+3. Open a Powershell console as Administrator and execute the following commands, making sure to replace <hubitat_ip> with the Hubitat hub actual IP address or hostname:
 
-<img src="https://github.com/mircolino/vacation/raw/main/images/events.png" width="50%" height="50%">
+   ```text
+   PS C:\> New-Service -Name "vacation" -DisplayName "UPS Monitoring Service" -Description "Hubitat UPS AC power presence and battery percentage" -BinaryPathName "C:\Program Files\UPS Monitoring Service\vacation.exe <hubitat_ip>"
+   PS C:\> Start-Service -Name "vacation"
+   ```
+
+4. The UPS Monitoring Service and the Hubitat Integration should now be fully operational.
+
+   <img src="https://github.com/mircolino/vacation/raw/main/images/events.png" width="50%" height="50%">
+
+5. To stop and remove the service open a Powershell console as Administrator and execute the following commands:
+
+   ```text
+   PS C:\> Stop-Service -Name "vacation"
+   PS C:\> Remove-Service -Name "vacation"
+   ```
+
+6. For troubleshooting, the service is logging errors and diagnostic to the System Event Viewer -> Windows Logs -> Application
 
 ***
 

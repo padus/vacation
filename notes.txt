@@ -11,9 +11,13 @@
 # Todo
 #
 
-- Turn the Windows app into a service
+-
 
 #
 # Notes
 #
 
+New-Service -Name "vacation" -DisplayName "UPS Monitoring Service" -Description "Hubitat UPS AC power presence and battery percentage" -BinaryPathName "C:\Program Files\UPS Monitoring Service\vacation.exe <hubitat_ip>"
+Start-Service -Name "vacation"
+Stop-Service -Name "vacation"
+Remove-Service -Name "vacation"

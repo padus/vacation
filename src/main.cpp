@@ -4,119 +4,177 @@
 // Copyright:   (c) 2021 Mirco Caramori
 // Repository:  https://github.com/padus/vacation
 //
-// Description: application source
+// Description: Application source
 //
 
 // Includes --------------------------------------------------------------------------------------------------------------------
 
-#include <system.hpp>
+#include <system.h>
 
 using namespace std;
 
-#define FORMAT_BUFFER_SIZE    512
+#define BUFFER_SIZE           256
+
+#define countof(T)            (sizeof(T) / sizeof(T[0]))
+
+#define SERVICE_NAME          L"Vacation"
+#define PROVIDER_NAME         L"UPS Monitoring Service"
+#define AGENT_NAME            L"UPS Monitoring Service/1.0"
 
 // Source ----------------------------------------------------------------------------------------------------------------------
 
-int FormatString(string& str, const char* format, ...) {
+unsigned long FormatString(string& str, const char* format, ...) {
   //
   // Format a string similarly to sprintf
-  // Return 0 if successful, a negative error otherwise
+  // Return NO_ERROR if successful, a Windows error otherwise
   //
-  char buffer[FORMAT_BUFFER_SIZE];
+  unsigned long err = NO_ERROR;
+
+  char buffer[BUFFER_SIZE];
   va_list args;
 
   va_start(args, format);
-  int ret = vsnprintf(buffer, FORMAT_BUFFER_SIZE, format, args);
+  int len = vsnprintf(buffer, countof(buffer), format, args);
   va_end(args);  
 
-  if (ret < 0) str.clear();
+  if (len >= 0 || len < countof(buffer)) str = buffer;
   else {
-    str.assign(buffer, (size_t)ret);
-    ret = 0;
+    str.clear();
+    err = ERROR_INVALID_PARAMETER;
   }
 
-  return (ret);
+  return (err);
 }
 
 // -------------------------------------------------------------
 
-int FormatStringW(wstring& str, const wchar_t* format, ...) {
+unsigned long FormatStringW(wstring& str, const wchar_t* format, ...) {
   //
   // Format a string similarly to sprintf
-  // Return 0 if successful, a negative error otherwise
+  // Return NO_ERROR if successful, a Windows error otherwise
   //
-  wchar_t buffer[FORMAT_BUFFER_SIZE];
+  unsigned long err = NO_ERROR;
+
+  wchar_t buffer[BUFFER_SIZE];
   va_list args;
 
   va_start(args, format);
-  int ret = vswprintf(buffer, FORMAT_BUFFER_SIZE, format, args);
+  int len = vswprintf(buffer, countof(buffer), format, args);
   va_end(args);  
 
-  if (ret < 0) str.clear();
+  if (len >= 0 || len < countof(buffer)) str = buffer;
   else {
-    str.assign(buffer, (size_t)ret);
-    ret = 0;
+    str.clear();
+    err = ERROR_INVALID_PARAMETER;
   }
 
-  return (ret);
+  return (err);
 }
 
 // -------------------------------------------------------------
 
-int SendPostRequest(wstring& msg, const wchar_t* host, INTERNET_PORT port, string& json) {
+unsigned long LogSys(const wchar_t* file, unsigned long line, unsigned short type, const wchar_t* format, ...) {
+  //
+  // Format a string similarly to sprintf
+  // Return NO_ERROR if successful, a Windows error otherwise
+  //
+  unsigned long err = ERROR_INVALID_PARAMETER;
+
+  wchar_t data[BUFFER_SIZE];
+  int dataLen = swprintf(data,  countof(data), L"file: %s, line: %lu", file, line);
+  if (dataLen >= 0 && dataLen < countof(data)) { 
+
+    wchar_t str[BUFFER_SIZE];
+    va_list args;
+    va_start(args, format);
+    int strLen = vswprintf(str,  countof(str), format, args);
+    va_end(args);  
+    if (strLen >= 0 && strLen < countof(str)) {
+
+      HANDLE handle = RegisterEventSourceW(nullptr, PROVIDER_NAME);
+      if (!handle) return (GetLastError());
+
+      unsigned long message = MSG_INFO;
+      if (type == EVENTLOG_ERROR_TYPE) message = MSG_ERROR;
+      else if (type == EVENTLOG_WARNING_TYPE) message = MSG_WARNING;
+      else type = EVENTLOG_INFORMATION_TYPE;
+
+      const wchar_t* pstr = str;
+      err = ReportEventW(handle, type, TYPE_SERVICE, message, nullptr, 1, (dataLen + 1) * sizeof(data[0]), &pstr, data)? NO_ERROR: GetLastError();
+
+      DeregisterEventSource(handle);
+    }
+  }
+
+  return (err);
+}
+
+#define LogError(format, ...)     LogSys(__FILEW__, __LINE__, EVENTLOG_ERROR_TYPE, format, __VA_ARGS__)
+#define LogWarning(format, ...)   LogSys(__FILEW__, __LINE__, EVENTLOG_WARNING_TYPE, format, __VA_ARGS__)
+#define LogInfo(format, ...)      LogSys(__FILEW__, __LINE__, EVENTLOG_INFORMATION_TYPE, format, __VA_ARGS__)
+
+#ifdef _DEBUG
+#define LogDebug(format, ...)     LogSys(__FILEW__, __LINE__, EVENTLOG_WARNING_TYPE, format, __VA_ARGS__)
+#else
+#define LogDebug(format, ...)
+#endif
+
+// -------------------------------------------------------------
+
+unsigned long  SendPostRequest(const wchar_t* host, INTERNET_PORT port, string& json) {
   //
   // Send a POST request to Hubitat
-  // Return a Windows error, -1 if we get an invalid http status, 0 if successful 
+  // Return NO_ERROR if successful, a Windows error otherwise
   //
-  int ret = 0;
+  unsigned long err = NO_ERROR;
 
   HINTERNET session = nullptr;
   HINTERNET connect = nullptr;
   HINTERNET request = nullptr;
 
   // Open a session
-  session = WinHttpOpen(L"UPS Monitoring Service/1.0", WINHTTP_ACCESS_TYPE_DEFAULT_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0);
+  session = WinHttpOpen(AGENT_NAME, WINHTTP_ACCESS_TYPE_DEFAULT_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0);
   if (session == nullptr) {
-    ret = (int)GetLastError();
-    FormatStringW(msg, L"WinHttpOpen() error: %d", ret); 
+    err = GetLastError();
+    LogError(L"WinHttpOpen() error: 0x%08lX", err); 
   }
   else {
     // Specify an HTTP server
     connect = WinHttpConnect(session, host, port, 0);
     if (connect == nullptr) {
-      ret = (int)GetLastError();
-      FormatStringW(msg, L"WinHttpConnect() error: %d", ret); 
+      err = GetLastError();
+      LogError(L"WinHttpConnect() error: 0x%08lX", err); 
     }
     else {
       // Create an HTTP request handle.
       request = WinHttpOpenRequest(connect, L"POST", nullptr, nullptr, WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, 0);
       if (request == nullptr) {
-        ret = (int)GetLastError();
-        FormatStringW(msg, L"WinHttpOpenRequest() error: %d", ret); 
+        err = GetLastError();
+        LogError(L"WinHttpOpenRequest() error: 0x%08lX", err); 
       }
       else {
         // Send a request
         if (WinHttpSendRequest(request, L"Content-Type: application/json", (DWORD)-1, (LPVOID)json.c_str(), (DWORD)json.length(), (DWORD)json.length(), 0) == false) {
-          ret = (int)GetLastError();
-          FormatStringW(msg, L"WinHttpSendRequest() error: %d", ret); 
+          err = GetLastError();
+          LogError(L"WinHttpSendRequest() error: 0x%08lX", err); 
         }
         else {
           // Wait for response
           if (WinHttpReceiveResponse(request, nullptr) == false) {
-            ret = (int)GetLastError();
-            FormatStringW(msg, L"WinHttpReceiveResponse() error: %d", ret); 
+            err = GetLastError();
+            LogError(L"WinHttpReceiveResponse() error: 0x%08lX", err); 
           }
           else {
             // Query return status code
             unsigned long code;
             unsigned long length = sizeof(code);
             if (WinHttpQueryHeaders(request, WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER, nullptr, &code, &length, nullptr) == false) {
-              ret = (int)GetLastError();
-              FormatStringW(msg, L"WinHttpQueryHeaders() error: %d", ret); 
+              err = GetLastError();
+              LogError(L"WinHttpQueryHeaders() error: 0x%08lX", err); 
             }
             else if (code != HTTP_STATUS_OK) {
-              ret = -1;
-              FormatStringW(msg, L"SendPostRequest() code: %d", code);               
+              err = ERROR_INVALID_PARAMETER;
+              LogError(L"SendPostRequest() code: %lu", code);               
             }
           }
         }
@@ -129,37 +187,82 @@ int SendPostRequest(wstring& msg, const wchar_t* host, INTERNET_PORT port, strin
   if (connect) WinHttpCloseHandle(connect);
   if (session) WinHttpCloseHandle(session);
 
-  return (ret);
+  return (err);
 }
 
 // -------------------------------------------------------------
 
-struct AppContext {
-  wstring hubitatAddress;
+struct Context {
+  SERVICE_STATUS_HANDLE statusHandle;
+  SERVICE_STATUS status;
+
+  wchar_t hubitatAddress[BUFFER_SIZE];
   INTERNET_PORT hubitatPort;
+
+  HANDLE stopHandle;
+  HANDLE powerHandle;
+  HANDLE batteryHandle;
+
+  Context() {
+    LogDebug(L"Context() clearing %zu bytes", sizeof(this));
+
+    memset(this, 0, sizeof(this));
+    status.dwServiceType = SERVICE_WIN32_OWN_PROCESS;
+  }
+  
+  virtual ~Context() {
+    LogDebug(L"~Context()");
+
+    if (stopHandle) CloseHandle(stopHandle);
+    if (powerHandle) UnregisterPowerSettingNotification(powerHandle);
+    if (batteryHandle) UnregisterPowerSettingNotification(batteryHandle);
+  }
 };
 
 // -------------------------------------------------------------
 
-LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
-  
+unsigned long ServiceStatus(Context& ctx, unsigned long currentState, unsigned long exitCode, unsigned long waitHint) {
   //
-  // Get the app context
+  // Sets the current service status and reports it to the SCM
+  // Return NO_ERROR if successful, a Windows error otherwise
   //
-  AppContext* ctx;
-  if (uMsg == WM_CREATE) {
-    CREATESTRUCT *create = reinterpret_cast<CREATESTRUCT*>(lParam);
-    ctx = reinterpret_cast<AppContext*>(create->lpCreateParams);
-    SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)ctx);
-  }
-  else {
-    LONG_PTR ptr = GetWindowLongPtr(hwnd, GWLP_USERDATA);
-    ctx = reinterpret_cast<AppContext*>(ptr);
-  }
+  static unsigned long checkPoint = 1;
 
-  switch (uMsg) {
-  case WM_POWERBROADCAST:
-    if (wParam == PBT_POWERSETTINGCHANGE) {
+  // Fill in the SERVICE_STATUS structure
+  ctx.status.dwCurrentState = currentState;
+  ctx.status.dwWin32ExitCode = exitCode;
+  ctx.status.dwWaitHint = waitHint;
+
+  ctx.status.dwControlsAccepted = (currentState == SERVICE_START_PENDING)? 0UL: SERVICE_ACCEPT_STOP;
+  ctx.status.dwCheckPoint = (currentState == SERVICE_RUNNING || currentState == SERVICE_STOPPED)? 0UL: checkPoint++;
+
+  // Report the status of the service to the SCM
+  return (SetServiceStatus(ctx.statusHandle, &ctx.status)? NO_ERROR: GetLastError());
+}
+
+// -------------------------------------------------------------
+
+unsigned long WINAPI ServiceHandler(unsigned long ctrl, unsigned long evt, void* data, void* context) {
+  //
+  // Handle the requested control code
+  //
+  unsigned long err = NO_ERROR;   
+  Context& ctx = *static_cast<Context*>(context);
+
+  switch(ctrl) {  
+  case SERVICE_CONTROL_STOP: 
+    ServiceStatus(ctx, SERVICE_STOP_PENDING, err, 0);
+
+    // Signal the service to stop.
+    SetEvent(ctx.stopHandle);
+    ServiceStatus(ctx, ctx.status.dwCurrentState, err, 0);
+    break;
+ 
+  case SERVICE_CONTROL_INTERROGATE: 
+    break; 
+ 
+  case SERVICE_CONTROL_POWEREVENT:
+    if (evt == PBT_POWERSETTINGCHANGE) {
       //
       // GUID_ACDC_POWER_SOURCE: DWORD
       //   0: AC power source
@@ -169,130 +272,131 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
       // GUID_BATTERY_PERCENTAGE_REMAINING: DWORD
       //   0-100: percentage remaining
       //
-      int ret = 0;
+      unsigned long ret = NO_ERROR;
+      wstring log;
       wstring msg;
       string json;
-      POWERBROADCAST_SETTING& pwr = *reinterpret_cast<POWERBROADCAST_SETTING*>(lParam);
+      POWERBROADCAST_SETTING& pwr = *static_cast<POWERBROADCAST_SETTING*>(data);
+      data = static_cast<void*>(pwr.Data);
 
       if (pwr.PowerSetting == GUID_ACDC_POWER_SOURCE) {
-        ret = FormatString(json, "{\"mains\": \"%d\"}", !(*(DWORD*)(pwr.Data))); 
-        if (ret) FormatStringW(msg, L"FormatString(mains) error: %d", ret);
+        bool present = !(*static_cast<unsigned long*>(data));
+
+        ret = FormatString(json, "{\"mains\": \"%d\"}", present); 
+        if (ret == NO_ERROR) FormatStringW(log, L"Mains: %d", present);
+        else LogError(L"FormatString(mains) error: 0x%08lX", ret);
       }
       else if (pwr.PowerSetting == GUID_BATTERY_PERCENTAGE_REMAINING) {
-        ret = FormatString(json, "{\"battery\": \"%d\"}", *(DWORD*)(pwr.Data)); 
-        if (ret) FormatStringW(msg, L"FormatString(battery) error: %d", ret);
+        unsigned long percentage = *static_cast<unsigned long*>(data);
+
+        ret = FormatString(json, "{\"battery\": \"%lu\"}", percentage); 
+        if (ret == NO_ERROR)  FormatStringW(log, L"Battery: %lu%%%%", percentage);
+        else LogError(L"FormatString(battery) error: 0x%08lX", ret);
       }
       else {
         // Unrecognized GUID
-        FormatStringW(msg, L"PowerSettingChange() unrecognized GUID");
-        ret = -1;
+        ret = ERROR_INVALID_PARAMETER;
+        LogError(L"PowerSettingChange() error: unrecognized GUID");
       }
 
       // Send POST to Hubitat
-      if (!ret) ret = SendPostRequest(msg,  ctx->hubitatAddress.c_str(), ctx->hubitatPort, json);
-      
-      if (ret) {
-        //
-        // Log msg
-        //
-      }
+      if (ret == NO_ERROR) ret = SendPostRequest(ctx.hubitatAddress, ctx.hubitatPort, json);
+
+      // Log event if no error      
+      if (ret == NO_ERROR) LogInfo(log.c_str());
     }
-    return (0);
+    break;
 
-  case WM_DESTROY:
-    PostQuitMessage(0);
-    return (0);
+  default: 
+    break;
+  } 
 
-  case WM_PAINT:
-    PAINTSTRUCT ps;
-    HDC hdc = BeginPaint(hwnd, &ps);
-
-    FillRect(hdc, &ps.rcPaint, (HBRUSH) (COLOR_WINDOW+1));
-
-    EndPaint(hwnd, &ps);
-    return (0);
-  }
-
-  return (DefWindowProcW(hwnd, uMsg, wParam, lParam));
+  return (err);
 }
 
 // -------------------------------------------------------------
 
-int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE /* hPrevInstance */, wchar_t* pCmdLine, int nCmdShow) {
-
-  const wchar_t CLASS_NAME[]  = L"UPS Monitoring Window Class";
-  const wchar_t WINDOW_NAME[]  = L"UPS Monitoring Service";
-
+void WINAPI ServiceMain(unsigned long /*argc*/, wchar_t** /*argv*/) {
   //
-  // Parse Command line
+  // Service main entry point
   //
-  int nArgs;
-  LPWSTR* szArglist = CommandLineToArgvW(pCmdLine, &nArgs);
-  if (!pCmdLine[0] || nArgs < 1) {
-    MessageBoxW(nullptr, L"Hubitat hostname or IP is missing. Please add it to the command line.", WINDOW_NAME, MB_OK | MB_ICONERROR);
-    return (0);
+  LogDebug(L"ServiceMain() entry: %s", GetCommandLineW());
+
+  Context ctx;
+
+  // Register the handler function for the service
+  ctx.statusHandle = RegisterServiceCtrlHandlerExW(SERVICE_NAME, ServiceHandler, &ctx);
+  if (ctx.statusHandle == nullptr) LogError(L"RegisterServiceCtrlHandlerEx() error: 0x%08lX", GetLastError());
+  else {
+    unsigned long err = NO_ERROR; 
+
+    // Report initial status to the SCM
+    ServiceStatus(ctx, SERVICE_START_PENDING, err, 3000);
+
+    // Process commandline arguments
+    int argc = 0;
+    wchar_t** argv = CommandLineToArgvW(GetCommandLineW(), &argc);
+    if (argc != 2) {
+      err = ERROR_INVALID_PARAMETER;
+
+      wstring cmd;
+      for (int x = 0; x < min(8, argc); x++) {
+        cmd += L" ";
+        cmd += argv[x];
+      }
+
+      LogError(L"ServiceMain() error: 0x%08lX, argc = %lu, argv =%s", err, argc, cmd.c_str()); 
+    }
+    else {
+      StringCchCopyW(ctx.hubitatAddress, countof(ctx.hubitatAddress), argv[1]);
+      ctx.hubitatPort = 39501;
+
+      // Create an event: the control handler function signals this event when it receives the stop control code
+      if ((ctx.stopHandle = CreateEventW(nullptr, true, false, nullptr)) == nullptr ||
+          (ctx.powerHandle = RegisterPowerSettingNotification(ctx.statusHandle, &GUID_ACDC_POWER_SOURCE, DEVICE_NOTIFY_SERVICE_HANDLE)) == nullptr ||
+          (ctx.batteryHandle = RegisterPowerSettingNotification(ctx.statusHandle, &GUID_BATTERY_PERCENTAGE_REMAINING, DEVICE_NOTIFY_SERVICE_HANDLE)) == nullptr) {
+        err = GetLastError();
+        LogError(L"CreateEvent()/RegisterEvent() error: 0x%08lX", err); 
+      }
+      else {
+        // Report running status when initialization is complete.
+        ServiceStatus(ctx, SERVICE_RUNNING, err, 0);
+
+        // Wait until service stops
+        WaitForSingleObject(ctx.stopHandle, INFINITE);
+      }
+    }
+
+    ServiceStatus(ctx, SERVICE_STOPPED, err, 0);
   }
 
-  // Create end initialize app context
-  AppContext *ctx = new (nothrow)AppContext;
-  ctx->hubitatAddress = szArglist[0];
-  ctx->hubitatPort = 39501;
+  LogDebug(L"ServiceMain() exit");
 
-  // Free memory allocated for CommandLineToArgvW arguments.
-  LocalFree(szArglist);
-
-  //
-  // Register the window class
-  //
-  WNDCLASS wc = {};
-
-  wc.lpfnWndProc = WindowProc;
-  wc.hInstance = hInstance;
-  wc.lpszClassName = CLASS_NAME;
-  RegisterClassW(&wc);
-
-  //
-  // Create the window
-  //
-  HWND hWnd = CreateWindowExW(
-    0,                              // Optional window styles
-    CLASS_NAME,                     // Window class
-    WINDOW_NAME,                    // Window text
-    WS_OVERLAPPEDWINDOW,            // Window style
-    CW_USEDEFAULT,                  // X
-    CW_USEDEFAULT,                  // Y
-    CW_USEDEFAULT,                  // W
-    CW_USEDEFAULT,                  // H
-    nullptr,                        // Parent window    
-    nullptr,                        // Menu
-    hInstance,                      // Instance handle
-    ctx                             // Additional application data
-  );
-
-  if (hWnd == nullptr) {
-    return 0;
-  }
-
-  ShowWindow(hWnd, nCmdShow);
-
-  //
-  // Register power events
-  //
-  HANDLE hNotify;
-  hNotify  = RegisterPowerSettingNotification(hWnd, &GUID_ACDC_POWER_SOURCE, DEVICE_NOTIFY_WINDOW_HANDLE);
-  hNotify  = RegisterPowerSettingNotification(hWnd, &GUID_BATTERY_PERCENTAGE_REMAINING, DEVICE_NOTIFY_WINDOW_HANDLE);
-
-  //
-  // Run the message loop
-  //
-  MSG msg = {};
-  while (GetMessageW(&msg, nullptr, 0, 0)) {
-    TranslateMessage(&msg);
-    DispatchMessageW(&msg);
-  }
-
-  return (0);
+  return;
 }
+
+// -------------------------------------------------------------
+
+int wmain(int /*argc*/, wchar_t** /*argv*/) { 
+
+  LogDebug(L"wmain() entry");
+
+  unsigned long err = NO_ERROR; 
+
+  SERVICE_TABLE_ENTRY dispatchTable[] = { 
+    { SERVICE_NAME, ServiceMain }, 
+    { nullptr, nullptr } 
+  }; 
+ 
+  if (StartServiceCtrlDispatcherW(dispatchTable) == false) {
+    err = GetLastError();    
+    LogError(L"StartServiceCtrlDispatcher() error: %lu", err);
+  } 
+
+  LogDebug(L"wmain() exit");
+
+  return(static_cast<int>(err));
+} 
 
 // Recycle Bin -----------------------------------------------------------------------------------------------------------------
 

@@ -4,9 +4,9 @@
   "version": 4,
   "configurations": [
     {
-      "name": "windows_x86_64-debug",
+      "name": "debug",
       "includePath": ["${workspaceFolder}/src/**"],
-      "defines": [],
+      "defines": ["_DEBUG"],
       "windowsSdkVersion": "10.0.19041.1",
       "compilerPath": "${VCToolsInstallDir}/bin/hostx64/x64/cl.exe",
       "cStandard": "c17",
@@ -14,7 +14,7 @@
       "intelliSenseMode": "windows-msvc-x64"
     },
     {
-      "name": "windows_x86_64-release",
+      "name": "release",
       "includePath": ["${workspaceFolder}/src/**"],
       "defines": ["NDEBUG"],
       "windowsSdkVersion": "10.0.19041.1",

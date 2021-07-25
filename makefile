@@ -1,240 +1,94 @@
 #
-# Project:     C/C++ Makefile
+# Project:     UPS Monitoring Service
 # Author:      Mirco Caramori
-# Copyright:   (c) 2020 Mirco Caramori
-# Repository:  https://github.com/mircolino/makefile
+# Copyright:   (c) 2021 Mirco Caramori
+# Repository:  https://github.com/mircolino/vacation
 #
-# Description: application builder
-#
-# Usage:       make run                         run release version build/relese/project
-#              make release (or just make)      build release version build/relese/project -> bin/project
-#              make debug                       build development version build/debug/project
-#              make syntax FILE=./src/foo.cpp   check the syntax of $(FILE)
-#              make clean                       clean or reset the building environment
-#
-# Environment: Linux -> gcc                     apt install build-essential gdb
-#              Windows -> gcc                   install mingw-w64 and either run mingw-w64.bat or add mingw/bin to the PATH
-#                                               copy mingw/bin/mingw32-make.exe to mingw/bin/make.exe
-#              Windows -> msvc                  install VS Build Tools and run VsDevCmd.bat (i.e. VsDevCmd.bat -arch=x64)
-#              Windows -> bash commands         using git/usr/bin
-#
-# Notes:       - only variables between dotted lines should need to be customized
-#              - filenames and directories cannot have spaces
-#              - directories must not end with /
-#              - extensions must begin with .
-#
-# Project:     project/
-#              |
-#              |-- src/
-#              |   |
-#              |   |-- precomp.hpp
-#              |   |-- *.hpp
-#              |    -- *.cpp
-#              |
-#              |-- bin/<os>_<cpu>/
-#              |   |
-#              |    -- project (from build/release)
-#              |
-#               -- build/<os>_<cpu>/
-#                  |
-#                  |-- release/
-#                  |   |
-#                  |   |-- *.o
-#                  |    -- project
-#                  |
-#                   -- debug/
-#                      |
-#                      |-- precomp.hpp.gch
-#                      |-- *.o
-#                       -- project
+# Description: Application makefile
 #
 
 #
-# Functions
+# cl options:   https://docs.microsoft.com/en-us/cpp/build/reference/compiler-options-listed-by-category
+#               https://docs.microsoft.com/en-us/cpp/build/reference/compiler-options-listed-alphabetically
 #
-rwildcard = $(foreach d,$(wildcard $(1:=/*)),$(call rwildcard,$d,$2)$(filter $(subst *,%,$2),$d))
-
+# rc options:   https://docs.microsoft.com/en-us/windows/win32/menurc/using-rc-the-rc-command-line-
 #
-# Misc
-#
-define NEWLINE
-
-
-endef
-
-HASH := \#
-
-#
-# Variables
+# link options: https://docs.microsoft.com/en-us/cpp/build/reference/linker-options
 #
 
-#-------------------------------------------------------------------------------------------------------------------------------
-PROJECT := vacation
-PRECOMP := system
+ECHO    := /dev/git/usr/bin/echo
+RM      := /dev/git/usr/bin/rm
+CP      := /dev/git/usr/bin/cp
+MKDIR   := /dev/git/usr/bin/mkdir
 
-ifeq ($(OS),Windows_NT)
-  UNAME := /dev/git/usr/bin/uname
-  TR    := /dev/git/usr/bin/tr
-  ECHO  := /dev/git/usr/bin/echo
-  RM    := /dev/git/usr/bin/rm
-  CP    := /dev/git/usr/bin/cp
-  MKDIR := /dev/git/usr/bin/mkdir
+REL_CFL := -std:c++17 -MT -TP -EHsc -nologo -O2 -Isrc -DNDEBUG
+REL_RFL := -Isrc -dNDEBUG 
+REL_LFL := -nologo advapi32.lib user32.lib shell32.lib winhttp.lib
 
-  OS    := windows
-  CC    := msvc
-else
-  UNAME := uname
-  TR    := tr
-  ECHO  := echo
-  RM    := rm
-  CP    := cp
-  MKDIR := mkdir
-
-  OS    := $(shell $(UNAME) -s | $(TR) A-Z a-z)
-  CC    := gcc
-endif
-#-------------------------------------------------------------------------------------------------------------------------------
-
-CPU := $(shell $(UNAME) -m | $(TR) A-Z a-z)
-
-HDR_EXT := .hpp
-SRC_EXT := .cpp
-
-ifeq ($(CC),msvc)
-  PCH_EXT := .pch
-else
-  PCH_EXT := $(HDR_EXT).gch
-endif
-
-ifeq ($(OS),windows)
-  OBJ_EXT := .obj
-  EXE_EXT := .exe
-else
-  OBJ_EXT := .o
-  EXE_EXT :=
-endif
-
-SRC_DIR := src
-BIN_DIR := bin/$(OS)_$(CPU)
-REL_DIR := build/$(OS)_$(CPU)/release
-DBG_DIR := build/$(OS)_$(CPU)/debug
-HDR_LST := $(sort $(call rwildcard,$(SRC_DIR),*$(HDR_EXT)))
-SRC_LST := $(sort $(call rwildcard,$(SRC_DIR),*$(SRC_EXT)))
-DIR_LST := $(patsubst %/,%,$(dir $(SRC_LST)))
-REL_LST := $(sort $(REL_DIR) $(patsubst $(SRC_DIR)%,$(REL_DIR)%,$(DIR_LST)))
-DBG_LST := $(sort $(DBG_DIR) $(patsubst $(SRC_DIR)%,$(DBG_DIR)%,$(DIR_LST)))
-
-ifeq ($(CC),msvc)
-  #
-  # cl options:   https://docs.microsoft.com/en-us/cpp/build/reference/compiler-options-listed-by-category
-  #               https://docs.microsoft.com/en-us/cpp/build/reference/compiler-options-listed-alphabetically
-  # link options: https://docs.microsoft.com/en-us/cpp/build/reference/linker-options
-  #
-  #-----------------------------------------------------------------------------------------------------------------------------
-  REL_CFL := -std:c++17 -TP -EHsc -nologo -O2 -I$(SRC_DIR) -DNDEBUG
-  REL_LFL := -nologo advapi32.lib user32.lib shell32.lib winhttp.lib
-
-  DBG_CFL := -std:c++17 -TP -EHsc -nologo -Zi -Wall -I$(DBG_DIR) -I$(SRC_DIR) 
-  DBG_LFL := -nologo -debug advapi32.lib user32.lib shell32.lib winhttp.lib
-  #-----------------------------------------------------------------------------------------------------------------------------
-
-  REL_CMP  = cl $(REL_CFL) -c -Fo$@ $<
-  REL_LNK  = link $(REL_LFL) -out:$@ $^
-
-  DBG_PCH  = $(ECHO) "$(HASH)include <$(PRECOMP)$(HDR_EXT)>" > $(DBG_DIR)/$(PRECOMP)$(SRC_EXT)$(NEWLINE) \
-             cl $(DBG_CFL) -Yc$(PRECOMP)$(HDR_EXT) -Fd$(DBG_DIR)/ -Fp$(DBG_DIR)/$(PRECOMP)$(PCH_EXT) -Fo$(DBG_DIR)/$(PRECOMP)$(OBJ_EXT) -c $(DBG_DIR)/$(PRECOMP)$(SRC_EXT)$(NEWLINE) \
-             $(RM) -f $(DBG_DIR)/$(PRECOMP)$(SRC_EXT)
-  DBG_SYN  = cl $(DBG_CFL) -Yu$(PRECOMP)$(HDR_EXT) -Fd$(DBG_DIR)/ -Fp$(DBG_DIR)/$(PRECOMP)$(PCH_EXT) -Zs $(FILE)
-  DBG_CMP  = cl $(DBG_CFL) -Yu$(PRECOMP)$(HDR_EXT) -Fd$(DBG_DIR)/ -Fp$(DBG_DIR)/$(PRECOMP)$(PCH_EXT) -Fo$@ -c $<
-  DBG_LNK  = link $(DBG_LFL) -out:$@ $^ $(DBG_DIR)/$(PRECOMP)$(OBJ_EXT)
-else
-  #
-  # gcc/g++ options: https://gcc.gnu.org/onlinedocs/gcc/Invoking-GCC.html
-  #
-  #-----------------------------------------------------------------------------------------------------------------------------
-  REL_CFL := -std=c++17 -pthread -O3 -I$(SRC_DIR) -DNDEBUG
-  REL_LFL := -pthread -lcurl
-
-  DBG_CFL := -std=c++17 -pthread -ggdb -I$(DBG_DIR) -I$(SRC_DIR)
-  DBG_LFL := -pthread -lcurl
-  #-----------------------------------------------------------------------------------------------------------------------------
-
-  REL_CMP  = g++ $(REL_CFL) -c $< -o $@
-  REL_LNK  = g++ $(REL_LFL) $^ -o $@
-
-  DBG_PCH  = g++ $(DBG_CFL) -x c++-header $< -o $@
-  DBG_SYN  = g++ $(DBG_CFL) -fsyntax-only $(FILE)
-  DBG_CMP  = g++ $(DBG_CFL) -c $< -o $@
-  DBG_LNK  = g++ $(DBG_LFL) $^ -o $@
-endif
+DBG_CFL := -std:c++17 -MTd -TP -EHsc -nologo -Zi -Wall -Ibuild/debug -Isrc -D_DEBUG
+DBG_RFL := -Isrc -d_DEBUG
+DBG_LFL := -nologo -debug advapi32.lib user32.lib shell32.lib winhttp.lib
 
 #
 # Dependencies & Tasks
 #
-.PHONY: all run release debug syntax clean info
+.PHONY: all release debug clean
 
 # default build
 all: release
 
-# release: runs
-run: $(REL_DIR)/$(PROJECT)$(EXE_EXT)
-	$<
-
 # release: build
-release: $(BIN_DIR)/$(PROJECT)$(EXE_EXT)
+release: vacation.exe
 
-# release: copy release exe to bin folder
-$(BIN_DIR)/$(PROJECT)$(EXE_EXT): $(REL_DIR)/$(PROJECT)$(EXE_EXT) | $(BIN_DIR)
-	$(CP) -f $< $@
+# release: copy release exe to the project root
+vacation.exe: build/release/vacation.exe
+	$(CP) -f build/release/vacation.exe ./
 
 # release: link
-$(REL_DIR)/$(PROJECT)$(EXE_EXT): $(patsubst $(SRC_DIR)/%$(SRC_EXT),$(REL_DIR)/%$(OBJ_EXT),$(SRC_LST)) | $(REL_DIR)
-	$(REL_LNK)
+build/release/vacation.exe: build/release/main.res build/release/main.obj | build/release
+	link $(REL_LFL) -out:build/release/vacation.exe build/release/main.obj build/release/main.res
 
-# release: compile
-$(REL_DIR)/%$(OBJ_EXT): $(SRC_DIR)/%$(SRC_EXT) $(HDR_LST) | $(REL_LST)
-	$(REL_CMP)
+# release: compile resorces
+build/release/main.res: src/log.mc src/main.rc src/version.h | build/release
+	$(CP) -f src/log.mc src/main.rc build/release
+	mc -U -h src -r build/release  build/release/log.mc
+	rc $(REL_RFL) build/release/main.rc
+	$(RM) -f build/release/*.mc build/release/*.rc build/release/*.bin
+
+# release: compile source
+build/release/main.obj: src/main.cpp src/system.h src/version.h src/log.h | build/release
+	cl $(REL_CFL) -c -Fobuild/release/main.obj src/main.cpp
 
 # debug: build
-debug: $(DBG_DIR)/$(PROJECT)$(EXE_EXT)
+debug: build/debug/vacation.exe
 
 # debug: link
-$(DBG_DIR)/$(PROJECT)$(EXE_EXT): $(patsubst $(SRC_DIR)/%$(SRC_EXT),$(DBG_DIR)/%$(OBJ_EXT),$(SRC_LST)) | $(DBG_DIR)
-	$(DBG_LNK)
+build/debug/vacation.exe: build/debug/main.res build/debug/main.obj | build/debug
+	link $(DBG_LFL) -out:build/debug/vacation.exe build/debug/main.obj build/debug/system.obj build/debug/main.res
 
-# debug: compile
-$(DBG_DIR)/%$(OBJ_EXT): $(SRC_DIR)/%$(SRC_EXT) $(HDR_LST) $(DBG_DIR)/$(PRECOMP)$(PCH_EXT) | $(DBG_LST)
-	$(DBG_CMP)
+# debug: compile resorces
+build/debug/main.res: src/log.mc src/main.rc src/version.h | build/debug
+	$(CP) -f src/log.mc src/main.rc build/debug
+	mc -U -h src -r build/debug  build/debug/log.mc
+	rc $(DBG_RFL) build/debug/main.rc
+	$(RM) -f build/debug/*.mc build/debug/*.rc build/debug/*.bin
 
-# syntax test only
-syntax: $(HDR_LST) $(DBG_DIR)/$(PRECOMP)$(PCH_EXT) | $(DBG_DIR)
-	$(DBG_SYN)
+# debug: compile source
+build/debug/main.obj: src/main.cpp build/debug/system.pch | build/debug
+	cl $(DBG_CFL) -Yusystem.h -Fdbuild/debug/ -Fpbuild/debug/system.pch -Fobuild/debug/main.obj -c src/main.cpp
 
-# debug: precomp
-$(DBG_DIR)/$(PRECOMP)$(PCH_EXT): $(SRC_DIR)/$(PRECOMP)$(HDR_EXT) | $(DBG_DIR)
-	$(DBG_PCH)
+# debug: precompile system headers
+build/debug/system.pch: src/system.h src/version.h src/log.h | build/debug
+	$(ECHO) "#include <system.h>" > build/debug/system.cpp
+	cl $(DBG_CFL) -Ycsystem.h -Fdbuild/debug/ -Fpbuild/debug/system.pch -Fobuild/debug/system.obj -c build/debug/system.cpp
+	$(RM) -f build/debug/system.cpp
 
 # clean or reset build
-clean: | $(REL_DIR) $(DBG_DIR) $(BIN_DIR)
-	$(RM) -fr $(REL_DIR)/* $(DBG_DIR)/* $(BIN_DIR)/*
+clean:
+	$(RM) -fr build vacation.exe
 
 # directory factory
-$(REL_LST) $(DBG_LST) $(BIN_DIR):
+build/release build/debug:
 	$(MKDIR) -p $@
-
-# makefile debug helper
-info:
-	$(info $(HDR_LST))
-	$(info $(SRC_LST))
-	$(info $(DIR_LST))
-	$(info $(REL_LST))
-	$(info $(DBG_LST))
-	$(info $(OS))
-
-#
-# Recycle Bin
-#
-
-# $(warning OS=$(OS))
 
 # EOF

@@ -5,11 +5,11 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "windows_x86_64-debug",
+      "name": "debug",
       "type": "cppvsdbg",
       "request": "launch",
       "program": "${workspaceFolder}/build/windows_x86_64/debug/${workspaceFolderBasename}.exe",
-      "args": ["172.16.10.19"],
+      "args": ["192.168.16.8"],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
       "environment": [],

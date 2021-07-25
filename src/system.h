@@ -4,23 +4,28 @@
 // Copyright:   (c) 2021 Mirco Caramori
 // Repository:  https://github.com/padus/vacation
 //
-// Description: precompiled system and std headers
+// Description: Precompiled system and std headers
 //
 
 #pragma once
 
 // System Includes -------------------------------------------------------------------------------------------------------------
 
-#ifndef UNICODE
-#define UNICODE
-#endif 
+#define _UNICODE                                // C/C++ headers
+#define UNICODE                                 // Windows headers
 
-#define WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN                     // No extra Windows stuff
 
+#include <sdkddkver.h>
 #include <windows.h>
+
 #include <shellapi.h>
 #include <winhttp.h>
+#include <strsafe.h>
 
 #include <string>
+
+#include "version.h"
+#include "log.h"
 
 // EOF -------------------------------------------------------------------------------------------------------------------------

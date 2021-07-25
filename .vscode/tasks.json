@@ -44,19 +44,6 @@
         "$msCompile"
       ],
       "group": "build"
-    },
-    {
-      "label": "syntax-check",
-      "type": "shell",
-      "command": "make",
-      "args": ["syntax", "FILE=${relativeFile}"],
-      "options": {
-        "cwd": "${workspaceFolder}"
-      },      
-      "problemMatcher": [
-        "$msCompile"
-      ],
-      "group": "build"
-    }   
+    }
   ]
 }
