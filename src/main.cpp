@@ -204,9 +204,9 @@ struct Context {
   HANDLE batteryHandle;
 
   Context() {
-    LogDebug(L"Context() clearing %zu bytes", sizeof(this));
+    LogDebug(L"Context() clearing %zu bytes", sizeof(*this));
 
-    memset(this, 0, sizeof(this));
+    memset(this, 0, sizeof(*this));
     status.dwServiceType = SERVICE_WIN32_OWN_PROCESS;
   }
   
@@ -338,14 +338,7 @@ void WINAPI ServiceMain(unsigned long /*argc*/, wchar_t** /*argv*/) {
     wchar_t** argv = CommandLineToArgvW(GetCommandLineW(), &argc);
     if (argc != 2) {
       err = ERROR_INVALID_PARAMETER;
-
-      wstring cmd;
-      for (int x = 0; x < min(8, argc); x++) {
-        cmd += L" ";
-        cmd += argv[x];
-      }
-
-      LogError(L"ServiceMain() error: 0x%08lX, argc = %lu, argv =%s", err, argc, cmd.c_str()); 
+      LogError(L"ServiceMain() error: 0x%08lX, argc = %d, argv = %s", err, argc, GetCommandLineW()); 
     }
     else {
       StringCchCopyW(ctx.hubitatAddress, countof(ctx.hubitatAddress), argv[1]);
