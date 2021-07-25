@@ -16,9 +16,10 @@ Simple Windows application and Hubitat presence sensor driver to monitor AC pres
 
 ### Windows System
 
-1. Create a new folder "C:\Program Files\UPS Monitoring Service" and copy the "vacation.exe" and "vacation.reg" files in it. *NB: If change folder name you'll have to update the "vacation.reg" file and the commands below accordingly.*
+1. Create a new folder "C:\Program Files\UPS Monitoring Service" and copy the "vacation.exe", "syslog_register.reg" and "syslog_unregister.reg" files in it.\
+   *NB: If change folder name you'll have to update the "syslog_register.reg" file and the commands below accordingly.*
 
-2. Double-click the "vacation.reg" file to register the service log message provider.
+2. Double-click the "syslog_register.reg" file to register the service log message provider.
 
 3. Open a Powershell console as Administrator and execute the following commands, making sure to replace <hubitat_ip> with the Hubitat hub actual IP address or hostname:
 
@@ -31,12 +32,17 @@ Simple Windows application and Hubitat presence sensor driver to monitor AC pres
 
    <img src="https://github.com/mircolino/vacation/raw/main/images/events.png" width="50%" height="50%">
 
-5. To stop and remove the service open a Powershell console as Administrator and execute the following commands:
+5. To completely uninstall the service:
 
-   ```text
-   PS C:\> Stop-Service -Name "vacation"
-   PS C:\> Remove-Service -Name "vacation"
-   ```
+   - Open a Powershell console as Administrator and execute the following commands:
+
+     ```text
+     PS C:\> Stop-Service -Name "vacation"
+     PS C:\> Remove-Service -Name "vacation"
+     ```
+
+   - Double-click the "syslog_unregister.reg" file to unregister the service log message provider.
+   - Delete the folder "C:\Program Files\UPS Monitoring Service".
 
 6. For troubleshooting, the service is logging errors and diagnostic to the System Event Viewer -> Windows Logs -> Application
 
