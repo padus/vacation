@@ -17,11 +17,11 @@ Simple Windows application and Hubitat presence sensor driver to monitor AC pres
 ### Windows System
 
 1. Create a new folder "C:\Program Files\UPS Monitoring Service" and copy the "vacation.exe", "syslog_register.reg" and "syslog_unregister.reg" files in it.\
-   *NB: If change folder name you'll have to update the "syslog_register.reg" file and the commands below accordingly.*
+   *NB: If you change the installation folder, you'll have to update the "syslog_register.reg" file and the commands below accordingly.*
 
 2. Double-click the "syslog_register.reg" file to register the service log message provider.
 
-3. Open a Powershell console as Administrator and execute the following commands, making sure to replace <hubitat_ip> with the Hubitat hub actual IP address or hostname:
+3. Open a Powershell console as Administrator and execute the following commands, making sure to replace **<hubitat_ip>** with the Hubitat hub actual IP address or hostname:
 
    ```text
    PS C:\> New-Service -Name "vacation" -DisplayName "UPS Monitoring Service" -Description "Hubitat UPS AC power presence and battery percentage" -BinaryPathName "C:\Program Files\UPS Monitoring Service\vacation.exe <hubitat_ip>"
@@ -32,7 +32,7 @@ Simple Windows application and Hubitat presence sensor driver to monitor AC pres
 
    <img src="https://github.com/mircolino/vacation/raw/main/images/events.png" width="50%" height="50%">
 
-5. To completely uninstall the service:
+5. To completely uninstall the Windows service:
 
    - Open a Powershell console as Administrator and execute the following commands:
 
