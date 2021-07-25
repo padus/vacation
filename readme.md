@@ -1,6 +1,6 @@
 # UPS Monitoring Service
 
-Simple Windows application and Hubitat presence sensor driver to monitor AC presence and battery level of a UPS connected to a Windows system.
+Simple Windows service and Hubitat presence sensor driver to monitor AC presence and battery level of a UPS connected to a Windows system.
 
 ## Installation Instructions
 
