@@ -13,8 +13,8 @@
 #define VER_DEBUG                   VS_FF_DEBUG
 #endif
 
-#define VER_VERSION                 1,10,28,0
-#define VER_VERSION_STR             L"1.10.28\0"
+#define VER_VERSION                 1,12,29,0
+#define VER_VERSION_STR             L"1.12.29\0"
 
 #define VER_AUTHOR_STR              L"Mirco Caramori"
 #define VER_COPYRIGHT_STR           L"(c) 2021 Mirco Caramori"

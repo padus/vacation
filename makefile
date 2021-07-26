@@ -22,10 +22,12 @@ CP      := /dev/git/usr/bin/cp
 MKDIR   := /dev/git/usr/bin/mkdir
 
 REL_CFL := -std:c++17 -MT -TP -EHsc -nologo -O2 -Isrc -DNDEBUG
+REL_MFL := -U -h src
 REL_RFL := -Isrc -dNDEBUG 
 REL_LFL := -nologo advapi32.lib user32.lib shell32.lib winhttp.lib
 
 DBG_CFL := -std:c++17 -MTd -TP -EHsc -nologo -Zi -Wall -Ibuild/debug -Isrc -D_DEBUG
+DBG_MFL := -U -h src
 DBG_RFL := -Isrc -d_DEBUG
 DBG_LFL := -nologo -debug advapi32.lib user32.lib shell32.lib winhttp.lib
 
@@ -51,7 +53,7 @@ build/release/vacation.exe: build/release/main.res build/release/main.obj | buil
 # release: compile resorces
 build/release/main.res: src/log.mc src/main.rc src/version.h | build/release
 	$(CP) -f src/log.mc src/main.rc build/release
-	mc -U -h src -r build/release  build/release/log.mc
+	mc $(REL_MFL) -r build/release  build/release/log.mc
 	rc $(REL_RFL) build/release/main.rc
 	$(RM) -f build/release/*.mc build/release/*.rc build/release/*.bin
 
@@ -69,7 +71,7 @@ build/debug/vacation.exe: build/debug/main.res build/debug/main.obj | build/debu
 # debug: compile resorces
 build/debug/main.res: src/log.mc src/main.rc src/version.h | build/debug
 	$(CP) -f src/log.mc src/main.rc build/debug
-	mc -U -h src -r build/debug  build/debug/log.mc
+	mc $(DBG_MFL) -r build/debug  build/debug/log.mc
 	rc $(DBG_RFL) build/debug/main.rc
 	$(RM) -f build/debug/*.mc build/debug/*.rc build/debug/*.bin
 

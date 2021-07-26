@@ -43,38 +43,11 @@
 
 
 //
-// MessageId: TYPE_SERVICE
-//
-// MessageText:
-//
-// Service
-//
-#define TYPE_SERVICE                     ((WORD)0x00000010L)
-
-//
-// MessageId: MSG_INFO
+// MessageId: MSG_FORMAT
 //
 // MessageText:
 //
 // %1
 //
-#define MSG_INFO                         ((DWORD)0x40000001L)
-
-//
-// MessageId: MSG_WARNING
-//
-// MessageText:
-//
-// %1
-//
-#define MSG_WARNING                      ((DWORD)0x80000002L)
-
-//
-// MessageId: MSG_ERROR
-//
-// MessageText:
-//
-// %1
-//
-#define MSG_ERROR                        ((DWORD)0xC0000003L)
+#define MSG_FORMAT                       ((DWORD)0x00000000L)
 

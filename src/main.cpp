@@ -94,13 +94,8 @@ unsigned long LogSys(const wchar_t* file, unsigned long line, unsigned short typ
       HANDLE handle = RegisterEventSourceW(nullptr, PROVIDER_NAME);
       if (!handle) return (GetLastError());
 
-      unsigned long message = MSG_INFO;
-      if (type == EVENTLOG_ERROR_TYPE) message = MSG_ERROR;
-      else if (type == EVENTLOG_WARNING_TYPE) message = MSG_WARNING;
-      else type = EVENTLOG_INFORMATION_TYPE;
-
       const wchar_t* pstr = str;
-      err = ReportEventW(handle, type, TYPE_SERVICE, message, nullptr, 1, (dataLen + 1) * sizeof(data[0]), &pstr, data)? NO_ERROR: GetLastError();
+      err = ReportEventW(handle, type, 0, MSG_FORMAT, nullptr, 1, (dataLen + 1) * sizeof(data[0]), &pstr, data)? NO_ERROR: GetLastError();
 
       DeregisterEventSource(handle);
     }
