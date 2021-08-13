@@ -24,7 +24,7 @@ Simple Windows service and Hubitat presence sensor driver to monitor AC presence
 3. Open a Powershell console as Administrator and execute the following commands, making sure to replace **<hubitat_ip>** with the Hubitat hub actual IP address or hostname:
 
    ```text
-   PS C:\> New-Service -Name "vacation" -DisplayName "UPS Monitoring Service" -Description "Hubitat UPS AC power presence and battery percentage" -BinaryPathName "C:\Program Files\UPS Monitoring Service\vacation.exe <hubitat_ip>"
+   PS C:\> New-Service -Name "vacation" -DisplayName "UPS Monitoring Service" -Description "Hubitat UPS AC power presence and battery percentage" -StartupType AutomaticDelayedStart -BinaryPathName "C:\Program Files\UPS Monitoring Service\vacation.exe <hubitat_ip>"
    PS C:\> Start-Service -Name "vacation"
    ```
 
