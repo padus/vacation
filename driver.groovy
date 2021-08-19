@@ -1,8 +1,8 @@
 /**
  * Driver:     UPS Monitoring Service
  * Author:     Mirco Caramori
- * Repository: https://github.com/mircolino/vacation
- * Import URL: https://raw.githubusercontent.com/mircolino/vacation/main/driver.groovy
+ * Repository: https://github.com/padus/vacation
+ * Import URL: https://raw.githubusercontent.com/padus/vacation/main/driver.groovy
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at:
@@ -15,19 +15,20 @@
  *
  */
 
-public static String version() { return "v1.0.8"; }
+public static String version() { return "v1.0.9"; }
 
 /**
  * Change Log:
  *
  * 2021.07.07 - Initial implementation
+ * 2021.08.18 - Relocated repository: mircolino -> padus
  *
  */
 
 // Metadata -------------------------------------------------------------------------------------------------------------------
 
 metadata {
-  definition(name: "UPS Monitoring Service", namespace: "mircolino", author: "Mirco Caramori", importUrl: "https://raw.githubusercontent.com/mircolino/vacation/main/driver.groovy") {
+  definition(name: "UPS Monitoring Service", namespace: "mircolino", author: "Mirco Caramori", importUrl: "https://raw.githubusercontent.com/padus/vacation/main/driver.groovy") {
     capability "Sensor";
     capability "Presence Sensor";
     capability "Battery";

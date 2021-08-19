@@ -6,13 +6,13 @@ Simple Windows service and Hubitat presence sensor driver to monitor AC presence
 
 ### Hubitat Website
 
-1. Add the UPS Monitoring Service [source code](https://raw.githubusercontent.com/mircolino/vacation/main/driver.groovy) to the Hubitat "Drivers Code" page.
+1. Add the UPS Monitoring Service [source code](https://raw.githubusercontent.com/padus/vacation/main/driver.groovy) to the Hubitat "Drivers Code" page.
 
 2. Create a new Virtual Device, select type: "UPS Monitoring Service" and press &lt;Save Device&gt;:
 
 3. Open the "UPS Monitoring Service" device page, enter the IP or MAC address of the Windows system where the UPS is connected and press &lt;Save Preferences&gt;:
 
-   <img src="https://github.com/mircolino/vacation/raw/main/images/device.png" width=50% height=50%>
+   <img src="https://github.com/padus/vacation/raw/main/images/device.png" width=50% height=50%>
 
 ### Windows System
 
@@ -30,7 +30,7 @@ Simple Windows service and Hubitat presence sensor driver to monitor AC presence
 
 4. The UPS Monitoring Service and the Hubitat Integration should now be fully operational.
 
-   <img src="https://github.com/mircolino/vacation/raw/main/images/events.png" width="50%" height="50%">
+   <img src="https://github.com/padus/vacation/raw/main/images/events.png" width="50%" height="50%">
 
 5. To completely uninstall the Windows service:
 

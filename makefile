@@ -2,7 +2,7 @@
 # Project:     UPS Monitoring Service
 # Author:      Mirco Caramori
 # Copyright:   (c) 2021 Mirco Caramori
-# Repository:  https://github.com/mircolino/vacation
+# Repository:  https://github.com/padus/vacation
 #
 # Description: Application makefile
 #
